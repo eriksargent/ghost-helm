@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ghost-helm.fullname" . }}-env
+  labels:
+    {{- include "ghost-helm.labels" . | nindent 4 }}
+data:
+  ACTIVITYPUB_TARGET: "{{ include "ghost-helm.fullname" . }}-activitypub:{{ .Values.activitypub.port }}"
+  DOMAIN: {{ .Values.ghost.domain | quote }}
+  GHOST_VERSION: {{ .Values.ghost.version | quote }}
+  mail__options__host: {{ .Values.secrets.mail.host | quote }}
+  mail__options__port: {{ .Values.secrets.mail.port | quote }}
+  mail__options__secure: {{ .Values.secrets.mail.secure | quote }}
+  mail__transport: {{ .Values.secrets.mail.transport | quote }}

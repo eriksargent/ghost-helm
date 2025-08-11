@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "ghost-helm.fullname" . }}-db
+  labels:
+    {{- include "ghost-helm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "ghost-helm.dbSelectorLabels" . | nindent 6 }}
+  serviceName: {{ include "ghost-helm.fullname" . }}-db
+  template:
+    metadata:
+      labels:
+        {{- include "ghost-helm.dbSelectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: database
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0.42@sha256:4445b2668d41143cb50e471ee207f8822006249b6859b24f7e12479684def5d9
+          env:
+            - name: MYSQL_DATABASE
+              value: {{ .Values.database.name | quote }}
+            - name: MYSQL_MULTIPLE_DATABASES
+              value: {{ .Values.database.multipleDatabases | quote }}
+            - name: MYSQL_USER
+              value: {{ .Values.database.user | quote }}
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ghost-helm.fullname" . }}-secrets
+                  key: mysql-password
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ghost-helm.fullname" . }}-secrets
+                  key: mysql-root-password
+          ports:
+            - containerPort: 3306
+              protocol: TCP
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - "mysqladmin ping -u root -p$MYSQL_ROOT_PASSWORD -h 127.0.0.1"
+            failureThreshold: 120
+            initialDelaySeconds: 30
+            periodSeconds: 1
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: db-data
+            - mountPath: /docker-entrypoint-initdb.d
+              name: db-init-scripts
+          {{- if .Values.resources.database }}
+          resources:
+            {{- toYaml .Values.resources.database | nindent 12 }}
+          {{- end }}
+      restartPolicy: Always
+      volumes:
+        - name: db-init-scripts
+          configMap:
+            name: {{ include "ghost-helm.fullname" . }}-db-init
+  volumeClaimTemplates:
+    - metadata:
+        name: db-data
+        labels:
+          {{- include "ghost-helm.labels" . | nindent 10 }}
+          app.kubernetes.io/component: database-storage
+      spec:
+        accessModes:
+          - {{ .Values.database.persistence.accessMode }}
+        resources:
+          requests:
+            storage: {{ .Values.database.persistence.size }}

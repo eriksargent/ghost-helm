@@ -1,0 +1,123 @@
+# Ghost Helm Chart Values
+
+# Ghost application configuration
+ghost:
+  # Ghost version
+  version: "6-alpine"
+
+  # Domain configuration
+  domain: "example.com"
+  adminDomain: "admin.example.com"
+  url: "https://example.com"
+  adminUrl: "https://admin.example.com"
+
+  # Storage configuration
+  persistence:
+    enabled: true
+    size: 20Gi
+    accessMode: ReadWriteMany
+
+# ActivityPub configuration
+activitypub:
+  # ActivityPub version
+  version: "1.1"
+
+  # Enable/disable ActivityPub deployment
+  enabled: true
+
+  # Configuration
+  port: 8080
+  localStoragePath: "/opt/activitypub/content/images/activitypub"
+  useMq: false
+  allowPrivateAddress: true
+
+# Database configuration
+database:
+  # Database settings
+  client: "mysql"
+  name: "ghost"
+  host: "db"
+  user: "ghost"
+
+  # Additional databases to create
+  multipleDatabases: "activitypub"
+
+  # Persistence
+  persistence:
+    enabled: true
+    size: 8Gi
+    accessMode: ReadWriteOnce
+
+# Secrets configuration
+secrets:
+  # Database passwords
+  database:
+    password: "ghostpassword"
+    rootPassword: "reallysecurerootpassword"
+
+  # Mail configuration
+  mail:
+    host: "smtp.example.com"
+    port: "465"
+    secure: "true"
+    transport: "SMTP"
+    auth:
+      user: "postmaster@example.com"
+      password: "1234567890"
+
+# Non-sensitive environment configuration
+env:
+  nodeEnv: "production"
+
+# Service configuration
+service:
+  ghost:
+    type: ClusterIP
+    port: 2368
+    targetPort: 2368
+
+  database:
+    type: ClusterIP
+    port: 3306
+    targetPort: 3306
+
+  activitypub:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+# Resource configuration
+resources:
+  ghost:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+
+  database:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+
+  activitypub:
+    requests:
+      memory: "128Mi"
+      cpu: "50m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+

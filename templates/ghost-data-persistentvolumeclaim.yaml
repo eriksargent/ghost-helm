@@ -1,0 +1,15 @@
+{{- if .Values.ghost.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ghost-helm.fullname" . }}-ghost-data
+  labels:
+    {{- include "ghost-helm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ghost-storage
+spec:
+  accessModes:
+    - {{ .Values.ghost.persistence.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.ghost.persistence.size }}
+{{- end }}

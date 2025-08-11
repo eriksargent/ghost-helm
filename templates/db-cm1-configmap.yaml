@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ghost-helm.fullname" . }}-db-init
+  labels:
+    {{- include "ghost-helm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database-init
+data:
+  create-multiple-databases.sh: |
+    #!/bin/bash
+
+    set -e
+
+    if [ -n "$MYSQL_MULTIPLE_DATABASES" ]; then
+      echo "Creating multiple databases: $MYSQL_MULTIPLE_DATABASES"
+
+      for db in $(echo "$MYSQL_MULTIPLE_DATABASES" | tr ',' ' '); do
+        echo "Creating database: $db"
+        mysql -u root -p"$MYSQL_ROOT_PASSWORD" <<-EOSQL
+          CREATE DATABASE IF NOT EXISTS \`$db\`;
+          GRANT ALL ON \`$db\`.* TO '$MYSQL_USER'@'%';
+        EOSQL
+      done
+
+      echo "Multiple databases created"
+    fi

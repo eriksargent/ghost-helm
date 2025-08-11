@@ -1,0 +1,88 @@
+{{- if .Values.activitypub.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ghost-helm.fullname" . }}-activitypub
+  labels:
+    {{- include "ghost-helm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: activitypub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "ghost-helm.activitypubSelectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "ghost-helm.activitypubSelectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: activitypub
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: mysql:8.0.42@sha256:4445b2668d41143cb50e471ee207f8822006249b6859b24f7e12479684def5d9
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ghost-helm.fullname" . }}-secrets
+                  key: mysql-root-password
+          command:
+            - /bin/bash
+            - -c
+            - |
+              echo "Waiting for MySQL database to be ready..."
+              until mysqladmin ping -h {{ include "ghost-helm.fullname" . }}-db -u root -p$MYSQL_ROOT_PASSWORD --silent; do
+                echo "MySQL is unavailable - sleeping"
+                sleep 2
+              done
+              echo "MySQL is ready!"
+        - name: activitypub-migrate
+          image: ghcr.io/tryghost/activitypub-migrations:{{ .Values.activitypub.version }}
+          env:
+            - name: MYSQL_DB
+              value: "mysql://{{ .Values.database.user }}:{{ .Values.secrets.database.password | urlquery }}@tcp({{ include "ghost-helm.fullname" . }}-db:3306)/{{ .Values.database.multipleDatabases }}"
+      containers:
+        - name: activitypub
+          image: ghcr.io/tryghost/activitypub:{{ .Values.activitypub.version }}
+          env:
+            - name: NODE_ENV
+              value: {{ .Values.env.nodeEnv | quote }}
+            - name: PORT
+              value: {{ .Values.activitypub.port | quote }}
+            - name: MYSQL_HOST
+              value: {{ include "ghost-helm.fullname" . }}-db
+            - name: MYSQL_USER
+              value: {{ .Values.database.user | quote }}
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ghost-helm.fullname" . }}-secrets
+                  key: mysql-password
+            - name: MYSQL_DATABASE
+              value: {{ .Values.database.multipleDatabases | quote }}
+            - name: ALLOW_PRIVATE_ADDRESS
+              value: {{ .Values.activitypub.allowPrivateAddress | quote }}
+            - name: USE_MQ
+              value: {{ .Values.activitypub.useMq | quote }}
+            - name: LOCAL_STORAGE_PATH
+              value: {{ .Values.activitypub.localStoragePath | quote }}
+            - name: LOCAL_STORAGE_HOSTING_URL
+              value: "{{ .Values.ghost.url }}/content/images/activitypub"
+          ports:
+            - containerPort: {{ .Values.activitypub.port }}
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /opt/activitypub/content
+              name: ghost-data
+          {{- if .Values.resources.activitypub }}
+          resources:
+            {{- toYaml .Values.resources.activitypub | nindent 12 }}
+          {{- end }}
+      restartPolicy: Always
+      volumes:
+        - name: ghost-data
+          persistentVolumeClaim:
+            claimName: {{ include "ghost-helm.fullname" . }}-ghost-data
+{{- end }}

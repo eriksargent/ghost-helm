@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ghost-helm.fullname" . }}-db
+  labels:
+    {{- include "ghost-helm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+spec:
+  type: {{ .Values.service.database.type }}
+  ports:
+    - name: mysql
+      port: {{ .Values.service.database.port }}
+      targetPort: {{ .Values.service.database.targetPort }}
+      protocol: TCP
+  selector:
+    {{- include "ghost-helm.dbSelectorLabels" . | nindent 4 }}

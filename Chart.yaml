@@ -1,0 +1,17 @@
+apiVersion: v2
+name: ghost-helm
+description: A Helm chart for deploying Ghost CMS with MySQL database
+version: 0.1.0
+appVersion: "6-alpine"
+type: application
+keywords:
+  - ghost
+  - cms
+  - blog
+  - mysql
+sources:
+  - https://github.com/TryGhost/Ghost
+home: https://ghost.org
+maintainers:
+  - name: Erik Sargent
+    email: erik@eriksargent.com

@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ghost-helm.fullname" . }}-ghost
+  labels:
+    {{- include "ghost-helm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ghost
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "ghost-helm.ghostSelectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "ghost-helm.ghostSelectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: ghost
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: mysql:8.0.42@sha256:4445b2668d41143cb50e471ee207f8822006249b6859b24f7e12479684def5d9
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ghost-helm.fullname" . }}-secrets
+                  key: mysql-root-password
+          command:
+            - /bin/bash
+            - -c
+            - |
+              echo "Waiting for MySQL database to be ready..."
+              until mysqladmin ping -h {{ include "ghost-helm.fullname" . }}-db -u root -p$MYSQL_ROOT_PASSWORD --silent; do
+                echo "MySQL is unavailable - sleeping"
+                sleep 2
+              done
+              echo "MySQL is ready!"
+      containers:
+        - name: ghost
+          image: ghost:{{ .Values.ghost.version }}
+          env:
+            - name: NODE_ENV
+              value: {{ .Values.env.nodeEnv | quote }}
+            - name: url
+              value: {{ .Values.ghost.url | quote }}
+            - name: admin__url
+              value: {{ .Values.ghost.adminUrl | quote }}
+            - name: ADMIN_DOMAIN
+              value: {{ .Values.ghost.adminDomain | quote }}
+            - name: database__client
+              value: {{ .Values.database.client | quote }}
+            - name: database__connection__host
+              value: {{ include "ghost-helm.fullname" . }}-db
+            - name: database__connection__database
+              value: {{ .Values.database.name | quote }}
+            - name: database__connection__user
+              value: {{ .Values.database.user | quote }}
+            - name: database__connection__password
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ghost-helm.fullname" . }}-secrets
+                  key: mysql-password
+            - name: mail__transport
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "ghost-helm.fullname" . }}-env
+                  key: mail__transport
+            - name: mail__options__host
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "ghost-helm.fullname" . }}-env
+                  key: mail__options__host
+            - name: mail__options__port
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "ghost-helm.fullname" . }}-env
+                  key: mail__options__port
+            - name: mail__options__secure
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "ghost-helm.fullname" . }}-env
+                  key: mail__options__secure
+            - name: mail__options__auth__user
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ghost-helm.fullname" . }}-secrets
+                  key: mail-auth-user
+            - name: mail__options__auth__pass
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ghost-helm.fullname" . }}-secrets
+                  key: mail-auth-password
+            - name: ACTIVITYPUB_TARGET
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "ghost-helm.fullname" . }}-env
+                  key: ACTIVITYPUB_TARGET
+            - name: DOMAIN
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "ghost-helm.fullname" . }}-env
+                  key: DOMAIN
+            - name: GHOST_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "ghost-helm.fullname" . }}-env
+                  key: GHOST_VERSION
+          ports:
+            - containerPort: 2368
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /var/lib/ghost/content
+              name: ghost-data
+          {{- if .Values.resources.ghost }}
+          resources:
+            {{- toYaml .Values.resources.ghost | nindent 12 }}
+          {{- end }}
+      restartPolicy: Always
+      volumes:
+        - name: ghost-data
+          persistentVolumeClaim:
+            claimName: {{ include "ghost-helm.fullname" . }}-ghost-data

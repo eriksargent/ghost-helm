@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ghost-helm.fullname" . }}-ghost
+  labels:
+    {{- include "ghost-helm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ghost
+spec:
+  type: {{ .Values.service.ghost.type }}
+  ports:
+    - name: http
+      port: {{ .Values.service.ghost.port }}
+      targetPort: {{ .Values.service.ghost.targetPort }}
+      protocol: TCP
+  selector:
+    {{- include "ghost-helm.ghostSelectorLabels" . | nindent 4 }}
