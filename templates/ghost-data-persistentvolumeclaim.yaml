@@ -12,4 +12,7 @@ spec:
   resources:
     requests:
       storage: {{ .Values.ghost.persistence.size }}
+  {{- if .Values.ghost.persistence.storageClassName }}
+  storageClassName: {{ .Values.ghost.persistence.storageClassName }}
+  {{- end }}
 {{- end }}

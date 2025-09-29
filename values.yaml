@@ -3,7 +3,7 @@
 # Ghost application configuration
 ghost:
   # Ghost version
-  version: "6-alpine"
+  version: "6.0.10-alpine"
 
   # Domain configuration
   domain: "example.com"
@@ -16,6 +16,7 @@ ghost:
     enabled: true
     size: 20Gi
     accessMode: ReadWriteMany
+    # storageClassName: ""  # Optional: specify storage class name, defaults to cluster default if not set
 
 # ActivityPub configuration
 activitypub:
