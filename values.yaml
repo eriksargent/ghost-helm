@@ -3,7 +3,7 @@
 # Ghost application configuration
 ghost:
   # Ghost version
-  version: "6.0.10-alpine"
+  version: "6.49-alpine"
 
   # Domain configuration
   domain: "example.com"
@@ -21,7 +21,7 @@ ghost:
 # ActivityPub configuration
 activitypub:
   # ActivityPub version
-  version: "1.1"
+  version: "1.2.6"
 
   # Enable/disable ActivityPub deployment
   enabled: true
