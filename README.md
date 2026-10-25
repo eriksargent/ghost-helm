@@ -101,6 +101,26 @@ The chart includes an ingress configuration that handles both Ghost and Activity
 
 The ingress supports both the main domain and admin domain with proper SSL termination.
 
+### Static `.well-known` files
+
+Set `staticFiles.enabled` and provide a list of files to serve a manifest without
+passing it through Ghost. Each file is rendered into a ConfigMap, mounted into a
+small nginx Deployment, and routed by an exact path on the public Ghost domain.
+
+```yaml
+staticFiles:
+  enabled: true
+  files:
+    - name: apple-app-site-association
+      path: /.well-known/apple-app-site-association
+      contentType: application/json
+      content: |
+        {"applinks":{"apps":[]}}
+```
+
+Do not configure `/.well-known/webfinger` or `/.well-known/nodeinfo` while
+ActivityPub is enabled; those routes remain owned by the ActivityPub service.
+
 ## Customization
 
 You can customize the deployment by modifying `values.yaml` or creating your own values file with overrides.

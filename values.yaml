@@ -3,7 +3,7 @@
 # Ghost application configuration
 ghost:
   # Ghost version
-  version: "6.49-alpine"
+  version: "6.72.0-alpine"
 
   # Domain configuration
   domain: "example.com"
@@ -21,7 +21,7 @@ ghost:
 # ActivityPub configuration
 activitypub:
   # ActivityPub version
-  version: "1.2.6"
+  version: "1.2.15"
 
   # Enable/disable ActivityPub deployment
   enabled: true
@@ -96,6 +96,23 @@ ingress:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 
+# Files served directly by nginx rather than Ghost. Each file is exposed only at
+# its exact `path` on the public Ghost domain. `name` must be a simple filename
+# because it is used as a ConfigMap key.
+staticFiles:
+  enabled: false
+  image: "nginx:1.27-alpine"
+  files: []
+  # - name: "apple-app-site-association"
+  #   path: "/.well-known/apple-app-site-association"
+  #   contentType: "application/json"
+  #   content: |
+  #     {"applinks":{"apps":[]}}
+
+# Exact-path redirects served by dedicated NGINX Ingress resources. Keep this
+# empty by default; site-specific values files supply the redirect catalog.
+redirects: []
+
 # Resource configuration
 resources:
   ghost:
@@ -122,3 +139,10 @@ resources:
       memory: "512Mi"
       cpu: "500m"
 
+  staticFiles:
+    requests:
+      memory: "16Mi"
+      cpu: "10m"
+    limits:
+      memory: "64Mi"
+      cpu: "100m"

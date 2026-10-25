@@ -73,3 +73,11 @@ ActivityPub selector labels
 app.kubernetes.io/name: {{ include "ghost-helm.name" . }}-activitypub
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Static-files selector labels
+*/}}
+{{- define "ghost-helm.staticFilesSelectorLabels" -}}
+app.kubernetes.io/name: {{ include "ghost-helm.name" . }}-static-files
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

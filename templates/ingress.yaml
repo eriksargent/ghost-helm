@@ -27,6 +27,17 @@ spec:
     - host: {{ .Values.ghost.domain | quote }}
       http:
         paths:
+          {{- if .Values.staticFiles.enabled }}
+          {{- range .Values.staticFiles.files }}
+          - path: {{ required "staticFiles.files[].path is required" .path | quote }}
+            pathType: Exact
+            backend:
+              service:
+                name: {{ include "ghost-helm.fullname" $ }}-static-files
+                port:
+                  number: 80
+          {{- end }}
+          {{- end }}
           {{- if .Values.activitypub.enabled }}
           # ActivityPub routes (must come before the catch-all route)
           - path: /\.ghost/activitypub(/.*)?

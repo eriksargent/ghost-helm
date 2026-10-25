@@ -1,0 +1,44 @@
+{{- if .Values.staticFiles.enabled }}
+{{- if not .Values.staticFiles.files }}
+{{- fail "staticFiles.enabled requires at least one entry in staticFiles.files" }}
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ghost-helm.fullname" . }}-static-files
+  labels:
+    {{- include "ghost-helm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: static-files
+data:
+  default.conf: |
+    server {
+      listen 8080;
+      server_name _;
+      root /usr/share/nginx/html;
+
+      location / {
+        try_files $uri =404;
+      }
+      {{- range .Values.staticFiles.files }}
+      location = {{ required "staticFiles.files[].path is required" .path | quote }} {
+        default_type {{ default "application/octet-stream" .contentType | quote }};
+        try_files $uri =404;
+      }
+      {{- end }}
+    }
+  {{- range .Values.staticFiles.files }}
+  {{- $name := required "staticFiles.files[].name is required" .name }}
+  {{- if not (regexMatch "^[A-Za-z0-9][A-Za-z0-9._-]*$" $name) }}
+  {{- fail "staticFiles.files[].name must be a simple filename containing only letters, numbers, dots, underscores, or hyphens" }}
+  {{- end }}
+  {{- if eq $name "default.conf" }}
+  {{- fail "staticFiles.files[].name cannot be default.conf" }}
+  {{- end }}
+  {{- $path := required "staticFiles.files[].path is required" .path }}
+  {{- if not (hasPrefix "/" $path) }}
+  {{- fail "staticFiles.files[].path must start with /" }}
+  {{- end }}
+  {{ $name }}: |-
+{{- required "staticFiles.files[].content is required" .content | nindent 4 }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,54 @@
+{{- if .Values.staticFiles.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ghost-helm.fullname" . }}-static-files
+  labels:
+    {{- include "ghost-helm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: static-files
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "ghost-helm.staticFilesSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/static-files: {{ toYaml .Values.staticFiles.files | sha256sum }}
+      labels:
+        {{- include "ghost-helm.staticFilesSelectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: static-files
+    spec:
+      containers:
+        - name: nginx
+          image: {{ .Values.staticFiles.image | quote }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          volumeMounts:
+            - name: static-files-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+            - name: static-files-content
+              mountPath: /usr/share/nginx/html
+          {{- with .Values.resources.staticFiles }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: static-files-config
+          configMap:
+            name: {{ include "ghost-helm.fullname" . }}-static-files
+            items:
+              - key: default.conf
+                path: default.conf
+        - name: static-files-content
+          configMap:
+            name: {{ include "ghost-helm.fullname" . }}-static-files
+            items:
+              {{- range .Values.staticFiles.files }}
+              - key: {{ required "staticFiles.files[].name is required" .name }}
+                path: {{ trimPrefix "/" (required "staticFiles.files[].path is required" .path) | quote }}
+              {{- end }}
+{{- end }}

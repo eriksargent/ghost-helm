@@ -1,0 +1,29 @@
+{{- range .Values.redirects }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "ghost-helm.fullname" $ }}-redirect-{{ .name }}
+  labels:
+    {{- include "ghost-helm.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: redirect
+  annotations:
+    nginx.ingress.kubernetes.io/permanent-redirect: {{ required "redirects[].target is required" .target | quote }}
+spec:
+  {{- if $.Values.ingress.className }}
+  ingressClassName: {{ $.Values.ingress.className }}
+  {{- end }}
+  rules:
+    - host: {{ $.Values.ghost.domain | quote }}
+      http:
+        paths:
+          - path: {{ required "redirects[].path is required" .path | quote }}
+            pathType: Exact
+            backend:
+              # The ingress controller returns the redirect before proxying.
+              # A valid backend is still required by the Kubernetes Ingress API.
+              service:
+                name: {{ include "ghost-helm.fullname" $ }}-ghost
+                port:
+                  number: {{ $.Values.service.ghost.port }}
+{{- end }}
